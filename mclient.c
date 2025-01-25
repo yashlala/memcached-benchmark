@@ -12,7 +12,7 @@
 #define NUM_KEYS 4194304
 #define MAX_KEY_SIZE 32
 #define VAL_SIZE 1024
-#define THREAD_COUNT 4
+#define NUM_THREADS 32
 #define ZIPF_SKEW 0.99
 
 struct zipf_data {
@@ -26,7 +26,7 @@ double *zipf_cdf;
 // Argv
 const char *server;
 int port;
-int iterations;
+int total_iterations;
 
 static void generate_zipf_cdf(double skew, int n) {
     // zipf_cdf = (double *)malloc(n * sizeof(double));
@@ -83,18 +83,22 @@ typedef struct {
 void *memcached_load_generator(void *arg) {
     thread_args_t *args = (thread_args_t *)arg;
     char key[MAX_KEY_SIZE];
+    int thread_iterations;
 
     // Initialize memcached client
     memcached_st *memc;
     memcached_server_st *servers;
     memcached_return rc;
 
+    thread_iterations = total_iterations / NUM_THREADS;
+    if (args->id == 0)
+        thread_iterations += total_iterations % NUM_THREADS;
+
     memc = memcached_create(NULL);
     servers = memcached_server_list_append(NULL, server, port, &rc);
     memcached_server_push(memc, servers);
 
-
-    for (int i = 0; i < iterations; i++) {
+    for (int i = 0; i < thread_iterations; i++) {
         int key_index = zipf_sample(NUM_KEYS);
         snprintf(key, MAX_KEY_SIZE, "key_%d", key_index);
         // printf("%s\n", key);
@@ -126,31 +130,30 @@ void *memcached_load_generator(void *arg) {
 
 int main(int argc, char **argv) {
     if (argc != 4) {
-        fprintf(stderr, "Usage: %s <server> <port> <iterations_per_thread>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <server> <port> <total_iterations>\n", argv[0]);
         return EXIT_FAILURE;
     }
 
     server = argv[1];
     port = atoi(argv[2]);
-    iterations = atoi(argv[3]);
-
+    total_iterations = atoi(argv[3]);
 
     // Prepare Zipfian CDF for key distribution
     printf("Init\n");
     generate_zipf_data();
 
     // Create threads
-    pthread_t threads[THREAD_COUNT];
-    thread_args_t thread_args[THREAD_COUNT];
+    pthread_t threads[NUM_THREADS];
+    thread_args_t thread_args[NUM_THREADS];
 
-    for (int i = 0; i < THREAD_COUNT; i++) {
+    for (int i = 0; i < NUM_THREADS; i++) {
         thread_args[i].id = i;
         pthread_create(&threads[i], NULL, memcached_load_generator, (void *)&thread_args[i]);
     }
 
     // Wait for threads to finish
     printf("Waiting for benchmark finish\n");
-    for (int i = 0; i < THREAD_COUNT; i++) {
+    for (int i = 0; i < NUM_THREADS; i++) {
         pthread_join(threads[i], NULL);
     }
 
