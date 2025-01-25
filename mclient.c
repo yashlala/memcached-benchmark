@@ -140,22 +140,26 @@ int main(int argc, char **argv) {
 
     // Prepare Zipfian CDF for key distribution
     printf("Init\n");
+    fflush(stdout);
     generate_zipf_data();
 
     // Create threads
     pthread_t threads[NUM_THREADS];
     thread_args_t thread_args[NUM_THREADS];
 
+    printf("Benchmark start!\n");
+    fflush(stdout);
     for (int i = 0; i < NUM_THREADS; i++) {
         thread_args[i].id = i;
         pthread_create(&threads[i], NULL, memcached_load_generator, (void *)&thread_args[i]);
     }
 
     // Wait for threads to finish
-    printf("Waiting for benchmark finish\n");
     for (int i = 0; i < NUM_THREADS; i++) {
         pthread_join(threads[i], NULL);
     }
+    printf("benchmark done.\n");
+    fflush(stdout);
 
     // Cleanup
     free(zipf_cdf);
