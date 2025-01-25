@@ -147,7 +147,7 @@ int main(int argc, char **argv) {
     pthread_t threads[NUM_THREADS];
     thread_args_t thread_args[NUM_THREADS];
 
-    printf("Benchmark start!\n");
+    printf("BEGIN_BENCHMARK\n"); // signal to test framework
     fflush(stdout);
     for (int i = 0; i < NUM_THREADS; i++) {
         thread_args[i].id = i;
@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
     for (int i = 0; i < NUM_THREADS; i++) {
         pthread_join(threads[i], NULL);
     }
-    printf("benchmark done.\n");
+    printf("END_BENCHMARK\n"); // signal to test framework
     fflush(stdout);
 
     // Cleanup
