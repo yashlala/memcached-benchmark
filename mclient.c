@@ -28,20 +28,20 @@ const char *server;
 int port;
 int iterations;
 
-void generate_zipf_cdf(double skew, int n) {
-    zipf_cdf = (double *)malloc(n * sizeof(double));
-    double sum = 0.0;
-    for (int i = 1; i <= n; i++) {
-        sum += 1.0 / pow(i, skew);
-    }
-    double cumulative_sum = 0.0;
-    for (int i = 0; i < n; i++) {
-        cumulative_sum += 1.0 / pow(i + 1, skew);
-        zipf_cdf[i] = cumulative_sum / sum;
-    }
+static void generate_zipf_cdf(double skew, int n) {
+    // zipf_cdf = (double *)malloc(n * sizeof(double));
+    // double sum = 0.0;
+    // for (int i = 1; i <= n; i++) {
+    //     sum += 1.0 / pow(i, skew);
+    // }
+    // double cumulative_sum = 0.0;
+    // for (int i = 0; i < n; i++) {
+    //     cumulative_sum += 1.0 / pow(i + 1, skew);
+    //     zipf_cdf[i] = cumulative_sum / sum;
+    // }
 }
 
-void generate_zipf_data(void) {
+static void generate_zipf_data(void) {
     size_t data_size_bytes = NUM_KEYS * sizeof(*zipf_data);
 
     zipf_data = malloc(data_size_bytes);
@@ -51,26 +51,29 @@ void generate_zipf_data(void) {
     close(fd);
 }
 
-int zipf_sample(int n) {
-    double r = (double)rand() / RAND_MAX;
+static int zipf_sample(int n) {
+    // uniform random for now.
+    return rand() % n;
 
-    int left = 0;
-    int right = NUM_KEYS - 1;
-    int highest_below_r = 0;  // Store the closest value strictly below the key
-
-    while (left <= right) {
-        int mid = (right + left) / 2;
-        // printf("%d, %d, %d\n", left, mid, right);
-
-        if (zipf_cdf[mid] < r) {
-            highest_below_r = mid;  // Update best candidate
-            left = mid + 1;  // Search the right half
-        } else {
-            right = mid - 1;  // Search the left half
-        }
-    }
-
-    return highest_below_r;
+    // double r = (double)rand() / RAND_MAX;
+    //
+    // int left = 0;
+    // int right = NUM_KEYS - 1;
+    // int highest_below_r = 0;  // Store the closest value strictly below the key
+    //
+    // while (left <= right) {
+    //     int mid = (right + left) / 2;
+    //     // printf("%d, %d, %d\n", left, mid, right);
+    //
+    //     if (zipf_cdf[mid] < r) {
+    //         highest_below_r = mid;  // Update best candidate
+    //         left = mid + 1;  // Search the right half
+    //     } else {
+    //         right = mid - 1;  // Search the left half
+    //     }
+    // }
+    //
+    // return highest_below_r;
 }
 
 typedef struct {
@@ -134,7 +137,6 @@ int main(int argc, char **argv) {
 
     // Prepare Zipfian CDF for key distribution
     printf("Init\n");
-    generate_zipf_cdf(ZIPF_SKEW, NUM_KEYS);
     generate_zipf_data();
 
     // Create threads
@@ -154,7 +156,7 @@ int main(int argc, char **argv) {
 
     // Cleanup
     free(zipf_cdf);
-    free(zipf_data);
+    // free(zipf_data);
 
     return EXIT_SUCCESS;
 }
